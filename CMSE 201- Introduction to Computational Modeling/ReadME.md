@@ -1,1 +1,0 @@
-Computational Mathematics, Science and Engineering: Computational modeling using a wide variety of applications examples. Algorithmic thinking, dataset manipulation, model building, data visualization, and numerical methods all implemented as programs. 
