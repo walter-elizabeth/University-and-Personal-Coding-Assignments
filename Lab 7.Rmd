@@ -1,0 +1,105 @@
+---
+title: "Lab No. 7"
+author: "Elizabeth Walter"
+output: pdf_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align = 'center')
+```
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+ameslist <- read.csv("C:/Users/walte/Desktop/MSU SSQDA/SSC 442/Data/ames.csv",
+                 header = TRUE,
+                 sep = ",")
+b <- which(sapply(ameslist, class) %in% c('integer'))
+Ames <- ameslist[names(ameslist[b])]
+```
+## 1. Use the lm() function in a simple linear regression (e.g., with only one predictor) with SalePrice as the response to determine the value of a garage.
+Our simple regression suggests that the average sale price for a house with no garage is 71,357.42 USD and a 1 sq ft increase in garage space is correlated with an expected increase in the sale price of the house by 231.65 USD, and the effect is statistically significant. 
+```{r q1}
+lm.fit = lm(SalePrice ~ GarageArea, data = Ames)
+summary(lm.fit)
+```
+
+\newpage
+## 2. Use the lm() function to perform a multiple linear regression with SalePrice as the response and all other variables from your Ames data as the predictors. Use the summary() function to print the results. Comment on the output. For instance:
+
+### a. Is there a relationship between the predictors and the response?
+Many of the predictors with the most significance are all positive, but there are also statistically significant predictors that have a negative relationship to SalePrice. There is great range in magnitude of the estimated effect of the predictors on SalePrice, ranging from 1's - 10000's.
+
+### b. Which predictors appear to have a statistically significant relationship to the response?
+LotArea, OverallQual, OveralCond, Year Built, MasVnrArea, BsmtFinSF1, X1stFlrSF, X2ndFlrSF, BsmtFullBath, BedroomAbvGr, KitchenAbvGr, TotRmsAbvGrd, Fireplaces, GarageCars, WoodDeckSF, ScreenPorch, PoolArea.
+
+### c. What does the coefficient for the year variable suggest?
+The coefficient for year sold is -253.6, suggesting that all else constant, the sale price of a house decreased by $253.6, on average, each year beyond 2006 (until the year it was sold). However we see it is not statistically significant.
+```{r q2}
+Ames$MSSubClass <- as.numeric(Ames$MSSubClass)
+mult_lm <- lm(SalePrice ~ MSSubClass + LotFrontage + LotArea + OverallQual + OverallCond + YearBuilt + YearRemodAdd + MasVnrArea + BsmtFinSF1 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + HalfBath + BedroomAbvGr + KitchenAbvGr + TotRmsAbvGrd + Fireplaces + GarageYrBlt + GarageCars + GarageArea + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + MiscVal + MoSold + YrSold, data = Ames)
+
+summary(mult_lm)
+```
+
+\newpage
+## 3. Use the : symbols to fit a linear regression model with one well-chosen interaction effects. Why did you do this?
+
+I wanted to use two terms that appeared to be statistically significant on their own. I noticed the NA reported in the summary() for TotalBsmtSF and GrLivArea due to high correlation between the variables, which makes sense- If a house has a basement, the floor plan is often the same or nearly the same for it as the floor plan for the first floor or more, so it is likely that the variable that contains the combined area of the first and all higher floors, GrLivArea, will contain TotalBsmtSF in that combination. Including the interaction effect in a model of TotalBsmtSF and GrLivArea on SalePrice revealed that the estimated change in average sale price for an increase of above ground area decreased for larger total basement areas, and vice versa. This makes sense that more area on either floor - and therefore greater total area of the house - would decrease the value of an additional unit on the other. For that reason, I wanted to test again for something slightly more nuanced. 
+```{r q3}
+sp_bm_liv <- lm(SalePrice ~ TotalBsmtSF + GrLivArea + TotalBsmtSF:GrLivArea, data = Ames)
+summary(sp_bm_liv)
+coef(sp_bm_liv)
+
+b1 <- coef(sp_bm_liv)[2]
+b2 <- coef(sp_bm_liv)[3]
+b3 <- coef(sp_bm_liv)[4]
+
+ch_x1 <- function(x2){
+  ch_x1 <- b1 + (b3*x2)
+  return(ch_x1)
+}
+ch_x2 <- function(x1){
+  ch_x2 <- b2 + (b3*x1)
+  return(ch_x2)
+}
+ch_x1(500)
+ch_x1(750)
+ch_x1(1000)
+
+ch_x2(500)
+ch_x2(750)
+ch_x2(1000)
+```
+
+Thinking that there is some interaction between the quality of a house and the age of the house, I decided to look at the estimated interaction effect of OverallQual & YearBuilt. Here it was interesting to see the coefficient estimates of both OverallQual and YearBuilt change sign in the simple model interaction as compared to the big model from question 2, which is likely due to the simpler model attributing negative effects of other predictors on Sale Price to OverallQual and YearBuilt. However we see that the coefficient estimate of the interaction term is positive. This indicates that, in terms of our estimates, for a one unit increase in quality score, the change in the average sale price is larger for newer houses, and for a one year increase in build year, the change in the average sale price is larger for higher quality houses. 
+```{r}
+sp_oq_yb <- lm(SalePrice ~ OverallQual + YearBuilt + OverallQual:YearBuilt, data = Ames)
+summary(sp_oq_yb)
+coef(sp_oq_yb)
+
+b1 <- coef(sp_oq_yb)[2]
+b2 <- coef(sp_oq_yb)[3]
+b3 <- coef(sp_oq_yb)[4]
+
+ch_x1(1960)
+ch_x1(1970)
+ch_x1(1980)
+
+ch_x2(3)
+ch_x2(5)
+ch_x2(7)
+```
+
+\newpage
+
+## 4. Try two different transformations of the variables, such as ln(x), x^2, sqrt(x). Do any of these make sense to include in a model of SalePrice? Comment on your findings.
+With this data, I do not see how a transformation of sqrt() or ^2 on any of the variables can be helpful. However, I believe that the ln() transformation could be helpful for reducing the impact of very large/small outliers when trying to analyze a regression line. 
+
+```{r q4}
+ggplot(Ames, aes(x = log(GrLivArea), y = SalePrice)) +
+  geom_point() + geom_smooth()
+
+ggplot(Ames, aes(x = YearBuilt**2, y = SalePrice)) +
+  geom_point() + geom_smooth()
+```

@@ -1,0 +1,73 @@
+---
+title: "Lab No. 4"
+author: "Elizabeth Walter"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align = 'center')
+```
+```{r}
+library(tidyverse)
+library(geofacet)
+unemployment_data <- read.csv("unemployment.csv")
+```
+
+
+# Exercise
+
+Use data from the US Bureau of Labor Statistics (BLS) to show the trends in employment rate for all 50 states between 2006 and 2016.
+
+**What stories does this plot tell? Which states struggled to recover from the 2008–09 recession?**
+
+```{r small-multiples, fig.width=12,fig.height=12}
+unemp_small <- unemployment_data %>%
+  mutate(state = reorder(state, unemployment))
+
+unemploy_plot <- ggplot(unemp_small, aes(x = date, y = unemployment)) +
+  geom_point() +
+  facet_wrap(vars(state)) +
+  theme_minimal() +
+  labs(x = NULL, 
+       y = "Unemployment Rate (%)",
+       title = "Unemployement Rates for US States & D.C., 2006 - 2016") +
+  theme(axis.text.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+  
+unemploy_plot
+```
+I reordered the data to display the plots by lowest to highest unemployment, based on the state's highest unemployment rate across the time period. From this we see that the states that saw the highest unemployment rates during the recession are not from a particular region or division - the four states with highest peaks in unemployment are Rhode Island, California, Michigan, and Nevada. We also see differing trends of recovery, as some states saw generally smooth declines from their peaks, such as Florida, California, and Nevada, while other states saw spikes (ex: New York, Indiana, Massachusetts) or plateaus (ex: Missouri, Michigan, Kentucky) in their recovery. Many states saw unemployment rates in 2016 near their 2009 rates, with a few even seeing lower rates at the end of the period. A few notable exceptions are New Mexico, Louisiana, Alabama and Wyoming, as the difference between the 2019 and 2006 unemployment rates in those states were much greater, relative to most other states. 
+
+\newpage
+# Slopegraphs
+
+Use data from the BLS to create a slopegraph that compares the unemployment rate in January 2006 with the unemployment rate in January 2009, either for all 50 states at once (good luck with that!) or for a specific region or division. Make sure the plot doesn't look too busy or crowded in the end.
+
+**What story does this plot tell? Which states in the US (or in the specific region you selected) were the most/least affected the Great Recession?**
+
+```{r slopegraph, fig.width= 8, fig.height= 8}
+unemp_06_09 <- unemployment_data %>%
+  filter(year %in% c(2006, 2009)) %>%
+  filter(month == 1) %>%
+  mutate(year = factor(year)) %>%
+  group_by(year, division) %>%
+  summarize(avg_unemp = mean(unemployment)) %>%
+  mutate(label_first = ifelse(year == 2006, paste0(division, ": ", round(avg_unemp, 2), ' %'), NA),
+         label_last = ifelse(year == 2009,  paste0(round(avg_unemp, 2),' %'), NA))
+
+  
+slopegraph_06_09 <- ggplot(unemp_06_09, aes(year, avg_unemp, group = division)) +
+  geom_line(aes(color = division)) +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  geom_text(aes(label = label_first, color = division), direction = 'y', nudge_x = -0.3, show.legend = FALSE) +
+  geom_text(aes(label = label_last, color = division), direction = 'y', nudge_x = 0.1, show.legend = FALSE) +
+  xlab("") + 
+  ylab("Unemployment Rate") + 
+  ggtitle("Change in Unemployment Rate by Division, 2006 vs. 2009")
+
+slopegraph_06_09
+```
+I grouped by division, which showed that with a few exceptions, changes in unemployment from 2006 to 2009 were very similar across divisions, and rankings of divisions by unemployment rate remained the same from 2006 to 2009, with again, a few exceptions. The exceptions: West North Central (Missouri, Kansas, Nebraska, Iowa, North Dakota, South Dakota, Minnesota) maintained its rank as lowest unemployment rank in each year, but it also saw a smaller increase in the unemployment rate, as did West South Central (Arkansas, Oklahoma, Texas, Louisiana), which moved it from the fifth lowest to second lowest unemployment rank from 2006 to 2009. The last exception that also saw a smaller increase in unemployment and changed rank across the period was the Mid-Atlantic division (New Jersey, New York, Pennsylvania). The East South Central (Alabama, Mississippi, Tennessee, Kentucky) and East North Central (Wisconsin, Illinois, Indiana, Ohio, Michigan) divisions had the highest unemployment rates before the recession in 2006, but also had the highest rates in 2009, with the East North Central division appearing to have the greatest increase, among all divisions, in unemployment between the two years. 
