@@ -7,9 +7,9 @@ email addresses, and the store identification number where they work.
 
 SELECT
 	first_name,
-    last_name,
-    email,
-    store_id
+    	last_name,
+  	email,
+    	store_id
 FROM
 	staff;
 
